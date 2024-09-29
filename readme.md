@@ -7,11 +7,14 @@
 5. traslate.py 自动翻译
 
 ## 安装
-> Python >= 3.11
-安装翻译：
+安装：
 
-    $ git clone 
-    $ make install
+    cd ~ && git clone https://github.com/ahuigo/eng-dict
+    cd eng-dict && make install
+
+如果你的python 比较低，升级到　Python >= 3.11
+
+    brew update && brew upgrade python
 
 ## 查词+翻译
 翻译：
@@ -36,13 +39,14 @@
 1. baidu pan　下载
 链接: https://pan.baidu.com/s/1u12RFO4hSHzbdlOR40rsyg?pwd=5qx9 提取码: 5qx9 
 2. gh release 下载：
+https://github.com/ahuigo/eng-dict/releases/tag/v0.1.0
 
 
 ## langdao 词典
 mac dictionary 制作方法
-> 制作文章1：https://www.zhihu.com/question/20428599
-> 使用文章2：https://medium.com/@ahuigo/mac-osx%E4%B8%8B%E5%A5%BD%E7%94%A8%E7%9A%84%E8%AF%8D%E5%85%B8%E5%B7%A5%E5%85%B7-8b07b7c8a88
-> 使用方法：https://sspai.com/post/43155
+1. 制作文章1：https://www.zhihu.com/question/20428599
+2. [使用文章2: medium](https://medium.com/@ahuigo/mac-osx%E4%B8%8B%E5%A5%BD%E7%94%A8%E7%9A%84%E8%AF%8D%E5%85%B8%E5%B7%A5%E5%85%B7-8b07b7c8a88)
+3. 使用方法：https://sspai.com/post/43155
 
 langdao dict for mac dictionary app:
 

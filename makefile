@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 install:
 	@[[ -d ~/bin ]] || mkdir -p ~/bin
 	# 1. install trans
@@ -16,4 +18,4 @@ install:
 	@echo "try: t.py 'hello world'"
 
 pkg:
-	gh release create v0.1.0 --notes "translate in cli" ./dist
+	gh release create v0.1.0 --notes "mydict" ./dist/*
