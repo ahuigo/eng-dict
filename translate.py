@@ -68,8 +68,8 @@ https://github.com/soimort/translate-shell
 def trans_shell(query:str):
     lang =  ':@en' if isChinese(query) else ':@zh'
     if lang == ':@zh' and re.fullmatch(r'[a-zA-Z]+', query):
-        gword.show_word(query)
-        quit()
+        if gword.play_word(query):
+            quit()
     #print("trans",lang, "-b", query)
     cmd = f"trans {lang} -show-original n -show-translation n  -show-prompt-message n  -show-languages n".split()
     # print(*cmd, query)

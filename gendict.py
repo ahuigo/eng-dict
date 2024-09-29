@@ -109,6 +109,8 @@ def gen_dict():
 def get_word_def(word:str):
     store=Store(db_filepath=words_file)
     d=store.get(word)
+    if not d:
+        d=store.get(word.capitalize())
     if d:
         obj = json.loads(d)
         wd = WordDef()
