@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import argparse
+from typing import Generator, LiteralString, Any
 import requests,re,json
 from subprocess import getoutput,check_output
 import gword
@@ -20,20 +21,29 @@ def isChinese(text)->bool:
     # fullmatch(^search$)
     return bool(pattern.search(text))
 
-def getQuery()->str:
+def getQuery()->Generator[LiteralString | str, Any, None]:
     parser = argparse.ArgumentParser()
     parser.add_argument('query', nargs='*', default='')
     args = parser.parse_args()
     query = ''
     if args.query:
         query = " ".join(args.query)
+        query = query.strip()
+        if not query:
+            quit("Usage: python3 translate.py <query>")
+        yield query
     else:
-        if not sys.stdin.isatty():
+        if sys.stdin.isatty():
+            # read from tty
+            while True:
+                query = input().strip()
+                yield query
+                if not query:
+                    break
+        else:
+            # read from pipe
             query = read_input()
-    query = query.strip()
-    if not query:
-        quit("Usage: python3 translate.py <query>")
-    return query
+            yield query
 
 def trans_gpt(query:str):
     url = 'https://mygpt.com.local/api/chat-process'
@@ -78,9 +88,9 @@ def trans_shell(query:str):
     return ans
 
 def main():
-    query = getQuery()
-    ans = trans_shell(query)
-    print(ans)
+    for query in getQuery():
+        ans = trans_shell(query)
+        print(ans)
 
 if __name__ == "__main__":
     main()

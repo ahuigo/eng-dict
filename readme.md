@@ -16,6 +16,10 @@
 
     brew update && brew upgrade python
 
+简化别名
+
+    alias t=t.py
+
 ## 查词+翻译
 翻译：
 
