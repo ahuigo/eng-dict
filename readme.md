@@ -10,7 +10,7 @@
 安装：
 
     cd ~ && git clone https://github.com/ahuigo/eng-dict
-    cd eng-dict && make install
+    cd eng-dict && make clean && make install
 
 如果你的python 比较低，升级到　Python >= 3.11
 

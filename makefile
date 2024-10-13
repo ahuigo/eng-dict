@@ -13,9 +13,12 @@ install:
 	ln -sf `pwd`/translate.py ~/bin/t.py
 
 	@# 3. PATH
-	@[[ -f ~/.words.hash ]] || wget https://github.com/ahuigo/eng-dict/releases/download/v0.1.0/words.hash -O ~/.words.hash
+	@[[ -f ~/words.hash.gz ]] || wget https://github.com/ahuigo/eng-dict/releases/download/v0.1.0/words.hash.gz -O ~/.words.hash.gz
 	@[[ "$$PATH" =~ ~/bin ]] || echo $$'请配置：' 'export PATH=$$PATH:~/bin'
 	@echo "try: t.py 'hello world'"
-
+clean:
+	rm -rf ~/.words.hash{.gz,}
 pkg:
+	cp ~/.words.hash.gz ./dist/words.hash.gz
+	#gh release delete v0.1.0
 	gh release create v0.1.0 --notes "mydict" ./dist/*

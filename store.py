@@ -1,17 +1,19 @@
 from typing import Any,Dict,List, Tuple
-import hashlib,pdb,struct,os,sys,gzip
+import hashlib,pdb,struct,os,sys,gzip,re
 from enum import Enum
 from io import BufferedReader
 from gzip import GzipFile
 
-def isDebug():
-    return os.getenv('DEBUG') is not None
-    return True
+def isDebug(mode=3):
+    debug = os.getenv("DEBUG", False)
+    if mode is None:
+        return debug
+    return debug and str(mode) == debug
 def debug(*args):
     if isDebug():
         print(*args)
 
-default_db_path = os.getenv("HOME", "/tmp")+'/.words.hash'
+default_db_path = os.getenv("HOME", "/tmp")+'/.words.hash.gz'
 KEY_LEN = 4 # 4 bytes
 VAL_POS_NULL = b'\xff'*KEY_LEN
 class Store():
@@ -204,7 +206,17 @@ class Store():
     def get(self, key):
         if not os.path.exists(self.db_filepath):
             quit(f"请先用gendict.py 生成本地字典文件: ({self.db_filepath}) ")
-        with gzip.open(self.db_filepath,'rb') as fp:
+        rawdb_filepath = self.db_filepath
+        if rawdb_filepath.endswith('.gz'):
+            rawdb_filepath = rawdb_filepath[:-3]
+            if not os.path.exists(rawdb_filepath):
+                # gunzip -c words.hash.gz > words.hash
+                import shutil
+                with gzip.open(self.db_filepath, 'rb') as f_in:
+                    with open(rawdb_filepath, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+
+        with open(rawdb_filepath,'rb') as fp:
             # 1. read header: data_pos(4 bytes) + key_num(4 bytes) + (12 bytes other)
             headers = fp.read(self.header_length)
             self.data_pos = int.from_bytes(headers[0:4],'big')
