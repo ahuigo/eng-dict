@@ -4,11 +4,12 @@ from typing import List, Dict
 from gendict import get_word_def, is_sound_on
 from subprocess import getoutput, call,Popen
 from tool import getch, clear_screen,debug_print
+from translate import trans_shell
 
 
 data_dir = "./data"
 words_path = f"{data_dir}/words.txt"
-words_statis_path = f"{data_dir}/words-statis.txt"
+words_statis_path = f"{data_dir}/statis.txt"
 word_display_timeout = 30
 
 def is_debug(mode=None):
@@ -110,10 +111,7 @@ class WordsStatis:
                 meta = json.loads(line)
                 self.sort = meta.get("sort", "asc")
                 self.last_index = int(meta.get("last_index", 0))
-                if self.last_index < 0 and self.sort == "desc":
-                    self.last_index = 0
-                    self.sort = "asc"
-                print("sort: ", self.sort)
+                print("sort: ", self.sort, "last_index: ", self.last_index)
             for line in fp.readlines():
                 line = line.strip()
                 if not line:
@@ -155,26 +153,45 @@ class WordsRepo:
     statis = WordsStatis()
 
     def __init__(self):
-        self.index = 0
+        # 1. init words
         words1 = (word.strip() for word in open(words_path))
         self.words = list(filter(lambda x: re.match(r'[a-zA-Z]',x), words1))
         self.register_quit_handler()
+        # 2. init set index
+        self.index = self.statis.last_index
+        if self.index < 0:
+            self.index = 0
+            self.statis.sort = "asc"
+        elif self.index >= len(self.words):
+            self.index = len(self.words) - 1
+            self.statis.sort = "desc"
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        count = 0 
+        max_count = len(self.words)
         while True:
+            count += 1
+            if count > max_count: raise StopIteration
             word = self.next()
             if self.statis.is_need_recite(word):
                 return word
 
     def __prev__(self):
-        word = self.prev() # revert self.index (让index 指向当前单词)
-        while True:
-            word = self.prev()
-            if self.statis.is_need_recite(word):
-                return word
+        try:
+            count = 0 
+            max_count = len(self.words)
+            word = self.prev() # revert self.index (revert to current word)
+            while True:
+                count += 1
+                if count > max_count: raise StopIteration
+                word = self.prev()
+                if self.statis.is_need_recite(word):
+                    return word
+        except StopIteration:
+            pass
 
     def undo(self):
         self.statis.undo()
@@ -199,7 +216,9 @@ class WordsRepo:
         signal.signal(signal.SIGQUIT, handler)
 
     def save(self):
+        self.__prev__()
         self.statis.save(self.index)
+        print("progress is saved")
 
 
     def current(self):
@@ -207,26 +226,34 @@ class WordsRepo:
             word = self.words[self.index]
             return word
         else:
-            debug_print("word0: ", "no more words", self.index, self.statis.sort)
+            # debug_print("word0: ", "no more words", self.index, self.statis.sort)
             raise StopIteration
 
     def next(self):
         word = self.current()
         if self.statis.sort == "asc":
             self.index += 1
+            if self.index >= len(self.words):
+                self.index = 0
         else:
             self.index -= 1
+            if self.index < 0:
+                self.index = len(self.words) - 1
         return word
 
-    def prev(self):
-        word = self.current()
+    def prev(self): # 其实是current
+        # debug_print("prev word1: ", word, self.index, self.statis.sort)
         if self.statis.sort == "asc":
             self.index -= 1
+            if self.index < 0:
+                self.index = len(self.words) - 1
         else:
             self.index += 1
+            if self.index >= len(self.words):
+                self.index = 0
+        word = self.current()
+        # debug_print("prev word2: ", self.index)
         return word
-
-
 
 def set_word_display_timeout():
     global word_display_timeout
@@ -237,16 +264,20 @@ def display_word_def(word):
     # clear_screen()
     wd = get_word_def(word)
     if wd:
-        print(wd.explanation)
+        print(f"===== {word} ====\n",wd.explanation)
+        print("press `s` to show sentence")
+        if getch(200) == "s":
+            print(wd.sentences)
     else:
         print(f"{word}: no definition found")
-    print("press any key to continue")
+    print("press other key to continue")
     getch(200)
 
 def print_help():
     s= ("h: help"
 """
     s: sort toggle 
+    i: input word/scentence to translate
     t: set display word timeout
     d: display word definition
     <space>: pass word
@@ -260,6 +291,10 @@ Press any key to exit help
     w = getch(1000)
     print("w: ", w)
 
+def translate():
+    query = input("输入你要翻译的词、句: ").strip()
+    print(trans_shell(query))
+
 def recite():
     if not is_sound_on():
         quit("please plug in headphones")
@@ -271,6 +306,8 @@ def recite():
         match char:
             case "h":
                 print_help()
+            case "i":
+                translate()
             case "t":
                 set_word_display_timeout()
             case "d":
@@ -292,6 +329,7 @@ def recite():
                 print(f"\ninvalid action: {char}")
                 print_help()
     wordsRepo.save()
+    print("done")
 
 
 if __name__ == "__main__":

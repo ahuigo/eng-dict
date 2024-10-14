@@ -56,12 +56,13 @@ def gen_words_entry():
 class WordDef(dict):
     phonetic: str = ''
     explanation: str = ''
+    sentences: str = ''
     def __init__(self, *args, **kwargs):
         super(WordDef, self).__init__(*args, **kwargs)
         self.__dict__ = self
     def __str__(self):
-        self.__dict__['explanation'] = self.explanation
         self.__dict__['phonetic'] = self.phonetic
+        self.__dict__['explanation'] = self.explanation
         return json.dumps(self, ensure_ascii=False)
 
     def __repr__(self):
@@ -155,8 +156,11 @@ def get_word_def(word:str):
     if d:
         obj = json.loads(d)
         wd = WordDef()
-        wd.explanation = obj.get('explanation','')
+        explanation = obj.get('explanation','')
         wd.phonetic = obj.get('phonetic','')
+        wd.explanation = re.sub(r'▸[^\n]+\n', '', explanation)
+        wd.explanation = re.sub(r'\n\n', '\n', wd.explanation)
+        wd.sentences = explanation
         return wd
     
 def is_sound_on():
