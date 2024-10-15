@@ -17,6 +17,10 @@ def getch(timeout=20):
         else:
             # print(f"Timeout {timeout}s")
             return None
+    except Exception as e:
+        return None
+    except KeyboardInterrupt as e:
+        return None
     finally:
         termios.tcsetattr(fd, termios.TCSAFLUSH, orig)
 

@@ -9,7 +9,7 @@ play sound:
 mpg123 'http://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=en&q=remedy'
 mpg123 'http://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=zh-CN&q={encode(旋律)}'
 '''
-def play_word(word: str, hide_sentence: bool = False):
+def play_word(word: str, show_sentence: bool = False):
     if is_sound_on():
         # echo -n "hello" | espeak
         # echo -n "hello" | say
@@ -17,9 +17,11 @@ def play_word(word: str, hide_sentence: bool = False):
     wd = get_word_def(word)
     if wd:
         if wd.phonetic:
-            print(f"\033[92m{wd.phonetic}\033[0m")
+            print(f"\033[91m{wd.rank} {wd.pattern}\033[0m")
+            print(f"\033[92m{wd.phonetic}\033[0m\n")
+
         print(wd.paraphrase)
-        if hide_sentence:
+        if not show_sentence:
             print("press s to show sentence")
             action = getch(200)
             if action == 's':
