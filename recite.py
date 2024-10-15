@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import sys, os, json, time,re, pdb
 from typing import List, Dict
+from pathlib import Path
 from gendict import get_word_def, is_sound_on
 from subprocess import getoutput, call,Popen
 from tool import getch, clear_screen,debug_print
 from translate import trans_shell
 
 
-data_dir = "./data"
+source_dir = Path(__file__).resolve().parent.__str__()
+data_dir = source_dir+"/data"
 words_path = f"{data_dir}/words.txt"
 words_statis_path = f"{data_dir}/statis.txt"
 word_display_timeout = 30
@@ -218,7 +220,7 @@ class WordsRepo:
     def save(self):
         self.__prev__()
         self.statis.save(self.index)
-        print("progress is saved")
+        print("schedule is saved")
 
 
     def current(self):
@@ -257,25 +259,46 @@ class WordsRepo:
 
 def set_word_display_timeout():
     global word_display_timeout
-    input("设置单词显示时间(秒): ").strip()
-    word_display_timeout = int(word_display_timeout)
+    try:
+        word_display_timeout = int(input("设置单词显示时间(秒): ").strip())
+    except Exception as e:
+        print("invalid input")
+    if word_display_timeout <1:
+        word_display_timeout = 1
+
+def say_explanation(s:str):
+    for index,key in enumerate(['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩']):
+        s= re.sub(key,f'', s)
+    s = re.sub(r'\x1b\[9\dm', '', s)
+    s = re.sub(r'\x1b\[0m', '', s)
+    s = re.sub(r'«|»|‹|›|\(|\)', '', s)
+    # s = re.sub(r'‹[\w, ]+›', '', s)
+    # s = re.sub(r'«[\w, ]+»', '', s)
+    s = re.sub(r'\b[a-zA-Z]+\b', '', s)
+    p = Popen(['say','-v', 'Meijia', s])
+    return p
 
 def display_word_def(word):
     # clear_screen()
     wd = get_word_def(word)
     if wd:
-        print(f"===== {word} ====\n",wd.explanation)
+        process = say_explanation(wd.paraphrase)
+        print(f"=====query mode: {word} ====\n",wd.paraphrase)
         print("press `s` to show sentence")
         if getch(200) == "s":
             print(wd.sentences)
+            print("press any key to quit query mode")
+            getch(200)
+        process.terminate()
+
     else:
-        print(f"{word}: no definition found")
-    print("press other key to continue")
-    getch(200)
+        print(f"{word}: no definition found; press any key to quit")
+        getch(200)
 
 def print_help():
     s= ("h: help"
 """
+    <Ctrl+c>: quit and save progress
     s: sort toggle 
     i: input word/scentence to translate
     t: set display word timeout
@@ -292,16 +315,18 @@ Press any key to exit help
     print("w: ", w)
 
 def translate():
-    query = input("输入你要翻译的词、句: ").strip()
+    query = input("Input something to translate: ").strip()
     print(trans_shell(query))
 
 def recite():
+    # global word_display_timeout
     if not is_sound_on():
         quit("please plug in headphones")
     wordsRepo = WordsRepo()
     for word in wordsRepo:
+        clear_screen()
         Popen(f'say "{word}"', shell=True)
-        print(word, wordsRepo.index)
+        print("next index:", wordsRepo.index, f"interval: {word_display_timeout}s")
         char = getch(word_display_timeout)
         match char:
             case "h":

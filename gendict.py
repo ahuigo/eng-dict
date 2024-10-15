@@ -10,7 +10,7 @@ words_file = os.getenv("HOME", "/tmp")+'/.words.hash.gz'
 
 def gen_words():
     for word, entry in gen_words_entry():
-        wordDef = parserWordXml(entry.decode()) #word.explanation
+        wordDef = parserWordXml(entry.decode()) 
         word = str(word.decode())
         yield word, wordDef
 
@@ -22,8 +22,8 @@ def gen_words_debug():
         if word != 'A': # type:ignore
             print(word)
             # print(entry.decode())
-            wordDef = parserWordXml(entry.decode()) #word.explanation
-            print(wordDef.explanation)
+            wordDef = parserWordXml(entry.decode()) 
+            print(wordDef.paraphrase)
             pdb.set_trace()
             # quit()
 
@@ -31,8 +31,7 @@ def gen_words_entry():
     #> https://gist.github.com/josephg/5e134adf70760ee7e49d
     #> Reverse-Engineering Apple Dictionary: https://fmentzer.github.io/posts/2020/dictionary/
     filename = '../langdao-ec-gb/Body.data'
-    filename = '/System/Library/AssetsV2/com_apple_MobileAsset_DictionaryServices_dictionaryOSX/6b98409a6f704b07449c95dead92a7911dba87d6.asset/AssetData/New Oxford American Dictionary.dictionary/Contents/Resources/Body.data'
-    filename = '/System/Library/AssetsV2/com_apple_MobileAsset_DictionaryServices_dictionaryOSX/ce8cda23e99d8fc3f655ad23fac865041c88cff6.asset/AssetData/Simplified Chinese - English.dictionary/Contents/Resources/Body.data'
+    filename = '/System/Library/AssetsV2/com_apple_MobileAsset_DictionaryServices_dictionaryOSX/9cf76a203397f26625fa0c1e9f594f0da5ad7f68.asset/AssetData/Simplified Chinese - English.dictionary/Contents/Resources/Body.data'
     with open(filename, 'rb') as f:
         f.seek(0x40)
         limit = 0x40 + unpack('i', f.read(4))[0]
@@ -55,14 +54,14 @@ def gen_words_entry():
 
 class WordDef(dict):
     phonetic: str = ''
-    explanation: str = ''
+    paraphrase: str = ''
     sentences: str = ''
     def __init__(self, *args, **kwargs):
         super(WordDef, self).__init__(*args, **kwargs)
         self.__dict__ = self
     def __str__(self):
         self.__dict__['phonetic'] = self.phonetic
-        self.__dict__['explanation'] = self.explanation
+        self.__dict__['paraphrase'] = self.paraphrase
         return json.dumps(self, ensure_ascii=False)
 
     def __repr__(self):
@@ -88,31 +87,31 @@ def parserWordXml(s:str):
             wordDef.phonetic=(span.text)
         else:
             try:
-                for child_exp in span.children: # explanation list
-                    explanation = '' 
+                for child_exp in span.children: # paraphrase list
+                    paraphrase = '' 
                     if child_exp.name is None:
-                        explanation = child_exp.text.strip()
+                        paraphrase = child_exp.text.strip()
                     else:
-                        explanation = ''
+                        paraphrase = ''
                         for child in child_exp.children:
                             text = child.text.strip()
                             if has_class(child, 'ty_label'):
-                                explanation += text+' '
+                                paraphrase += text+' '
                             elif text:
                                 remove_pinyin(child)
                                 if has_class(child, 'trg') or has_class(child, 'trgg'): # class="trg" 解释
-                                    explanation+= f"\033[95m{child.text.strip()}\033[0m\n"
+                                    paraphrase+= f"\033[95m{child.text.strip()}\033[0m\n"
                                 else: # class="exg" 例句
-                                    explanation += child.text.strip()+'\n'
-                        # print("debug exp:", explanation)
+                                    paraphrase += child.text.strip()+'\n'
+                        # print("debug exp:", paraphrase)
                         # pdb.set_trace()
 
-                    if explanation: 
-                        wordDef.explanation += explanation + "\n" 
-                    if len(wordDef.explanation)>MAX_DEF_LEN:
-                        wordDef.explanation+='(too long to skip...)'
+                    if paraphrase: 
+                        wordDef.paraphrase += paraphrase + "\n" 
+                    if len(wordDef.paraphrase)>MAX_DEF_LEN:
+                        wordDef.paraphrase+='(too long to skip...)'
                         break 
-                if len(wordDef.explanation)>MAX_DEF_LEN:
+                if len(wordDef.paraphrase)>MAX_DEF_LEN:
                     break
             except Exception as e:
                 print("xml:\n",s)
@@ -128,7 +127,6 @@ def gen_dict():
     i = 0
     for word, definition in gen_words():
         store.add_item(word, definition)
-        #print(word)
         #print(definition)
         i+=1
         if is_debug(2) and i>1000:
@@ -156,11 +154,11 @@ def get_word_def(word:str):
     if d:
         obj = json.loads(d)
         wd = WordDef()
-        explanation = obj.get('explanation','')
         wd.phonetic = obj.get('phonetic','')
-        wd.explanation = re.sub(r'▸[^\n]+\n', '', explanation)
-        wd.explanation = re.sub(r'\n\n', '\n', wd.explanation)
-        wd.sentences = explanation
+        paraphrase = obj.get('paraphrase','')
+        wd.paraphrase = re.sub(r'▸[^\n]+\n', '', paraphrase)
+        wd.paraphrase = re.sub(r'\n\n', '\n', wd.paraphrase)
+        wd.sentences = paraphrase
         return wd
     
 def is_sound_on():

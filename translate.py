@@ -76,6 +76,8 @@ def trans_gpt(query:str):
 https://github.com/soimort/translate-shell
 """
 def trans_shell(query:str):
+    if not query or not query.strip():
+        return ''
     lang =  ':@en' if isChinese(query) else ':@zh'
     if lang == ':@zh' and re.fullmatch(r'[0-9\-a-zA-Z]+', query):
         if gword.play_word(query):

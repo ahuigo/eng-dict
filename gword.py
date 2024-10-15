@@ -16,7 +16,7 @@ def play_word(word: str):
     wd = get_word_def(word)
     if wd:
         print(f"\033[92m{wd.phonetic}\033[0m\n")
-        print(wd.explanation)
+        print(wd.paraphrase)
     # else:
     #     print(f"{word}: no definition found")
     return wd

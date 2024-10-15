@@ -40,18 +40,27 @@ class Store():
 
     def generate_hash_index(self, key:str, hash_key_num:int):
         kIndex = self.hash_key(key, hash_key_num)
-        # 如果有hash 冲突
         loop = 1
         while True:
             debug(f"generate key index:{key}=>{kIndex}",self.kdata)
+            # 1. 如果没有hash 冲突: quit
             if self.kdata[kIndex] == VAL_POS_NULL:
                 break
             debug("current_val_pos:",self.kdata[kIndex])
-            # data 的第一个字节标记有下一个key
-            val_pos = self.kdata[kIndex]
-            self.vdata[int.from_bytes(val_pos,'big')] = 1
+            # 2. 如果有hash 冲突: # data 的第一个字节标记有下一个key
+            val_pos_bytes = self.kdata[kIndex]
+            val_pos = int.from_bytes(val_pos_bytes,'big')
+            self.vdata[val_pos] = 1
 
-            # kIndex 指向下一个空位
+            # 3. 判断key是否相等(word已经存在)
+            record_len = int.from_bytes(self.vdata[val_pos+1:val_pos+3],'big')
+            start, end = val_pos+3, val_pos+3+record_len
+
+            word2 = self.vdata[start:end].split(b':',1)[0].decode()
+            if word2 == key:
+                return -1
+
+            # 4. kIndex 指向下一个空位
             kIndex+=1
             if kIndex >= hash_key_num:
                 loop += 1
@@ -59,16 +68,19 @@ class Store():
                 kIndex = 0
         return kIndex
 
-    def serialize_data(self, link_next_key:bool, k:str, v:str):
-        # has_next_key(1)| data_length(2)| key:value
+    def serialize_data(self, has_next_key:bool, k:str, v:str):
+        # has_next_key(1byte)| data_length(2bytes)| key:value
         d = f'{k}:{v}'.encode()
-        if link_next_key:
+        if len(d) >= 2**16:
+            quit(f'fatal: {k} data length({len(d)}) >= 2**16')
+        if has_next_key:
             return b'\x01'+len(d).to_bytes(2,'big')+d
         else:
             return b'\x00'+len(d).to_bytes(2,'big')+d
 
         
     def save(self):
+        print(f"1. init save file {self.db_filepath}")
         key_num = len(self.dict)
         hash_key_num = key_num*2
         self.kdata = [VAL_POS_NULL]*hash_key_num
@@ -76,26 +88,33 @@ class Store():
             quit(f'no data to save')
         if hash_key_num >= 2**(KEY_LEN*8) :
             quit(f'fatal: hash_key_num({hash_key_num}) >= 2**{KEY_LEN*8}')
+
+        print("2. index + serialize data")
+        i = 0
         for k,v in self.dict.items():
+            i+=1
+            if i % 10000 == 0: print(i)
             debug(f"------key: {k}-----")
             key_index = self.generate_hash_index(k, hash_key_num) 
+            if key_index < 0: # word already exists
+                continue
             val_pos = len(self.vdata)
-            sd = self.serialize_data(False, k,v)
-            self.vdata.extend(sd)
+            serialize_val = self.serialize_data(False, k,v)
+            self.vdata.extend(serialize_val)
             debug("serialize_key_index:", key_index)
             debug("serialize_val_pos:", val_pos)
-            debug("serialize_val:",sd)
+            debug("serialize_val:",serialize_val)
             debug("vdata:", self.vdata)
             try:
                 self.kdata[key_index] = val_pos.to_bytes(KEY_LEN,'big')
             except Exception as e:
                 print(f'val_pos:{val_pos},{KEY_LEN}')
                 raise e
-        debug("===========")
+        print("3. ===write to file ========")
         '''  
         header: data_pos(4 bytes) + key_num(4 bytes) + (12 bytes other)
         key_data: key_index=> val_pos (4 bytes= 32bit)
-        value_data: has_next_key + data_length + key+value
+        value_data: has_next_key(1byte)| data_length(2bytes)| key:value
         '''
         with gzip.open(self.db_filepath,'wb') as fp:
             # 1. write header: data_pos_offset(4 bytes) + hash_key_num(4 bytes) + (12 bytes other)
@@ -138,7 +157,7 @@ class Store():
     '''  
     header: data_pos(4 bytes) + key_num(4 bytes) + (12 bytes other)
     key_data: key_index => val_pos
-    value_data: has_next_key + data_length + key+value
+    value_data: has_next_key(1byte)| data_length(2bytes)| key:value
     '''
     def debug_first_word(self):
         with gzip.open(self.db_filepath,'rb') as fp:
@@ -191,10 +210,6 @@ class Store():
 
     # has_next_key(1)| data_length(2)| key:value
     def get_record_by_pos(self,fp:GzipFile|BufferedReader, val_pos:int):
-        # has_next_key = bool(self.vdata[val_pos])
-        # length = int.from_bytes(self.vdata[val_pos+1:val_pos+3],'big')
-        # key,value = self.vdata[val_pos+3:val_pos+2+length].decode().split(':',1)
-        # return has_next_key, key,value
         fp.seek(self.data_pos+val_pos)
         item = fp.read(3)
         has_next_key = bool(item[0])
