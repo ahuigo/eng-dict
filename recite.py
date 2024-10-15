@@ -3,6 +3,7 @@ import sys, os, json, time,re, pdb
 from typing import List, Dict
 from pathlib import Path
 from gendict import get_word_def, is_sound_on
+from gword import show_word_sentence
 from subprocess import getoutput, call,Popen
 from tool import getch, clear_screen,debug_print
 from translate import trans_shell
@@ -271,9 +272,9 @@ def say_explanation(s:str):
         s= re.sub(key,f'', s)
     s = re.sub(r'\x1b\[9\dm', '', s)
     s = re.sub(r'\x1b\[0m', '', s)
-    s = re.sub(r'«|»|‹|›|\(|\)', '', s)
     # s = re.sub(r'‹[\w, ]+›', '', s)
     # s = re.sub(r'«[\w, ]+»', '', s)
+    s = re.sub(r'«|»|‹|›|\(|\)', '', s)
     s = re.sub(r'\b[a-zA-Z]+\b', '', s)
     p = Popen(['say','-v', 'Meijia', s])
     return p
@@ -283,10 +284,12 @@ def display_word_def(word):
     wd = get_word_def(word)
     if wd:
         process = say_explanation(wd.paraphrase)
-        print(f"=====query mode: {word} ====\n",wd.paraphrase)
+        print(f"=====query mode: {word} ====")
+        print(f"\033[92m{wd.phonetic}\033[0m")
+        print(wd.paraphrase)
         print("press `s` to show sentence")
         if getch(200) == "s":
-            print(wd.sentences)
+            show_word_sentence(wd)
             print("press any key to quit query mode")
             getch(200)
         process.terminate()

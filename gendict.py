@@ -5,14 +5,44 @@ from bs4 import BeautifulSoup
 import pdb,json,re,os
 from subprocess import getoutput
 from tool import is_debug
+from typing import List, Any
 MAX_DEF_LEN = 1500
 words_file = os.getenv("HOME", "/tmp")+'/.words.hash.gz'
 
+class WordDef(dict):
+    phonetic: str = ''
+    paraphrase: str = ''
+    sentences: str = ''
+    sentences2: List[Any] = []
+    rank = ""
+    pattern = ""
+    def __init__(self, *args, **kwargs):
+        super(WordDef, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+    def __str__(self):
+        self.__dict__['phonetic'] = self.phonetic
+        self.__dict__['paraphrase'] = self.paraphrase
+        return json.dumps(self, ensure_ascii=False)
+
+    def __repr__(self):
+        return self.__str__()
+
 def gen_words():
+    from gendict2 import genWordDef2
+    print("gen_words 1")
     for word, entry in gen_words_entry():
         wordDef = parserWordXml(entry.decode()) 
         word = str(word.decode())
         yield word, wordDef
+    print("gen_words 2")
+    for wdf in genWordDef2():
+        wordDef = WordDef()
+        wordDef.phonetic = wdf.pronunciation
+        wordDef.paraphrase = wdf.paraphrase
+        wordDef.sentences2 = wdf.sentences
+        wordDef.rank = wdf.rank
+        wordDef.pattern = wdf.pattern
+        yield wdf.word, wordDef
 
 def gen_words_debug():
     if not is_debug(1):
@@ -52,20 +82,6 @@ def gen_words_entry():
                 yield word, entry
                 pos += chunksize
 
-class WordDef(dict):
-    phonetic: str = ''
-    paraphrase: str = ''
-    sentences: str = ''
-    def __init__(self, *args, **kwargs):
-        super(WordDef, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-    def __str__(self):
-        self.__dict__['phonetic'] = self.phonetic
-        self.__dict__['paraphrase'] = self.paraphrase
-        return json.dumps(self, ensure_ascii=False)
-
-    def __repr__(self):
-        return self.__str__()
 
 def has_class(tag, cls):
     return hasattr(tag, 'attrs') and cls in tag.attrs.get('class',[])
@@ -74,6 +90,16 @@ def remove_pinyin(bsnode):
     if hasattr(bsnode, 'find_all'):
         for node in bsnode.find_all(class_="ty_pinyin"):
             node.decompose()
+
+def simple_paraphrase(s:str):
+    s = re.sub(r'‹[a-zA-Z, ]+›', '', s.strip())
+    s = re.sub(r'«[a-zA-Z, ]+»', '', s)
+    s = re.sub(r'\([a-zA-Z, ]+\)', '', s)
+    s = re.sub(r'^\s+', '', s)
+    s = re.sub(r'\n+', '\n', s)
+    # s = re.sub(r'«|»|‹|›|\(|\)', '', s.strip())
+    # s = re.sub(r'\b[a-zA-Z]+\b', '', s)
+    return s
 
 def parserWordXml(s:str):
     wordDef = WordDef()
@@ -88,26 +114,29 @@ def parserWordXml(s:str):
         else:
             try:
                 for child_exp in span.children: # paraphrase list
-                    paraphrase = '' 
+                    sentences = '' 
                     if child_exp.name is None:
-                        paraphrase = child_exp.text.strip()
+                        sentences = child_exp.text.strip()
+                        paraphrase = sentences
                     else:
+                        sentences = ''
                         paraphrase = ''
                         for child in child_exp.children:
                             text = child.text.strip()
                             if has_class(child, 'ty_label'):
-                                paraphrase += text+' '
+                                sentences += text+' '
                             elif text:
                                 remove_pinyin(child)
                                 if has_class(child, 'trg') or has_class(child, 'trgg'): # class="trg" 解释
-                                    paraphrase+= f"\033[95m{child.text.strip()}\033[0m\n"
+                                    s = simple_paraphrase(child.text)
+                                    paraphrase+= f"\033[95m{s}\033[0m\n"
+                                    sentences+= f"\033[95m{s}\033[0m\n"
                                 else: # class="exg" 例句
-                                    paraphrase += child.text.strip()+'\n'
-                        # print("debug exp:", paraphrase)
-                        # pdb.set_trace()
-
-                    if paraphrase: 
+                                    sentences += child.text.strip()+'\n'
+                                    # paraphrase = re.sub(r'▸[^\n]+\n', '', sentences)
+                    if sentences: 
                         wordDef.paraphrase += paraphrase + "\n" 
+                        wordDef.sentences += sentences + "\n" 
                     if len(wordDef.paraphrase)>MAX_DEF_LEN:
                         wordDef.paraphrase+='(too long to skip...)'
                         break 
@@ -127,7 +156,8 @@ def gen_dict():
     i = 0
     for word, definition in gen_words():
         store.add_item(word, definition)
-        #print(definition)
+        # print(json.dumps(definition))
+        # return
         i+=1
         if is_debug(2) and i>1000:
             print("limit 1000")
@@ -135,8 +165,8 @@ def gen_dict():
             break
         if i % 10000 == 0:
             print(i)
-        if i> 22*10000:
-            quit("excceed 22*10000")
+        if i> 30*10000:
+            quit("excceed 30*10000")
     store.save()
     print("test:\n3D: ",store.get('3D'))
     print("Armenian:",store.get('Armenian'))
@@ -153,12 +183,12 @@ def get_word_def(word:str):
             d=store.get(word.lower())
     if d:
         obj = json.loads(d)
-        wd = WordDef()
-        wd.phonetic = obj.get('phonetic','')
-        paraphrase = obj.get('paraphrase','')
-        wd.paraphrase = re.sub(r'▸[^\n]+\n', '', paraphrase)
-        wd.paraphrase = re.sub(r'\n\n', '\n', wd.paraphrase)
-        wd.sentences = paraphrase
+        wd = WordDef(**obj)
+        # wd.phonetic = obj.get('phonetic','')
+        # paraphrase = obj.get('paraphrase','')
+        # wd.paraphrase = re.sub(r'▸[^\n]+\n', '', paraphrase)
+        # wd.paraphrase = re.sub(r'\n\n', '\n', wd.paraphrase)
+        # wd.sentences = paraphrase
         return wd
     
 def is_sound_on():

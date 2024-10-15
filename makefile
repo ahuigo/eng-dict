@@ -25,4 +25,5 @@ clean:
 pkg:
 	cp ~/.words.hash.gz ./dist/words.hash.gz
 	#gh release delete v0.1.0
+	#gh release create v0.1.0 --notes "mydict" ./dist/*{.tgz,.gz,.txt}
 	gh release create v0.1.0 --notes "mydict" ./dist/*

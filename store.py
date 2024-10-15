@@ -58,6 +58,7 @@ class Store():
 
             word2 = self.vdata[start:end].split(b':',1)[0].decode()
             if word2 == key:
+                pdb.set_trace()
                 return -1
 
             # 4. kIndex 指向下一个空位
@@ -90,10 +91,7 @@ class Store():
             quit(f'fatal: hash_key_num({hash_key_num}) >= 2**{KEY_LEN*8}')
 
         print("2. index + serialize data")
-        i = 0
         for k,v in self.dict.items():
-            i+=1
-            if i % 10000 == 0: print(i)
             debug(f"------key: {k}-----")
             key_index = self.generate_hash_index(k, hash_key_num) 
             if key_index < 0: # word already exists
