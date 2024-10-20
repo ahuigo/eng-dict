@@ -57,7 +57,7 @@ class WdDicts:
             word.pronunciation += list_obj[4]
         if word.pronunciation:
             word.pronunciation = f"|{word.pronunciation}|"
-        word.paraphrase = '\n'.join(json.loads(list_obj[5]))
+        word.paraphrase = '\n'.join(json.loads(list_obj[5])).strip()
         word.rank = list_obj[6]
         word.pattern = list_obj[7]
         word.sentences = parseSentence(list_obj[8])

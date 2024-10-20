@@ -3,7 +3,7 @@ import sys, os, json, time,re, pdb
 from typing import List, Dict
 from pathlib import Path
 from gendict import get_word_def, is_sound_on
-from gword import show_word_sentence
+from gword import show_word_sentence,show_word, say_explanation
 from subprocess import getoutput, call,Popen
 from tool import getch, clear_screen,debug_print
 from translate import trans_shell
@@ -267,36 +267,6 @@ def set_word_display_timeout():
     if word_display_timeout <1:
         word_display_timeout = 1
 
-def say_explanation(s:str):
-    for index,key in enumerate(['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩']):
-        s= re.sub(key,f'', s)
-    s = re.sub(r'\x1b\[9\dm', '', s)
-    s = re.sub(r'\x1b\[0m', '', s)
-    # s = re.sub(r'‹[\w, ]+›', '', s)
-    # s = re.sub(r'«[\w, ]+»', '', s)
-    s = re.sub(r'«|»|‹|›|\(|\)', '', s)
-    s = re.sub(r'\b[a-zA-Z]+\b', '', s)
-    p = Popen(['say','-v', 'Meijia', s])
-    return p
-
-def display_word_def(word):
-    # clear_screen()
-    wd = get_word_def(word)
-    if wd:
-        process = say_explanation(wd.paraphrase)
-        print(f"=====query mode: {word} ====")
-        print(f"\033[92m{wd.phonetic}\033[0m")
-        print(wd.paraphrase)
-        print("press `s` to show sentence")
-        if getch(200) == "s":
-            show_word_sentence(wd)
-            print("press any key to quit query mode")
-            getch(200)
-        process.terminate()
-
-    else:
-        print(f"{word}: no definition found; press any key to quit")
-        getch(200)
 
 def print_help():
     s= ("h: help"
@@ -306,7 +276,8 @@ def print_help():
     i: input word/scentence to translate
     t: set display word timeout
     d: display word definition
-    <space>: pass word
+    <space>: halt/suspend mode
+    <enter>: pass word
     u: undo last passed word
     n: next word
     p: previous word
@@ -329,7 +300,7 @@ def recite():
     for word in wordsRepo:
         clear_screen()
         Popen(f'say "{word}"', shell=True)
-        print("next index:", wordsRepo.index, f"interval: {word_display_timeout}s")
+        print("nextIndex:", wordsRepo.index, f"interval: {word_display_timeout}s")
         char = getch(word_display_timeout)
         match char:
             case "h":
@@ -338,11 +309,14 @@ def recite():
                 translate()
             case "t":
                 set_word_display_timeout()
-            case "d":
-                display_word_def(word)
+            case "d": 
+                show_word(word) # display word definition
             case "s":
                 wordsRepo.sort_toggle()
             case " ":
+                print("suspending mode....(press any key to continue)")
+                getch(86400*10)
+            case "\x0a":
                 print("passed word: " + word)
                 wordsRepo.statis.pass_word(word)
             case "u":
@@ -354,7 +328,7 @@ def recite():
             case None:
                 pass
             case _:
-                print(f"\ninvalid action: {char}")
+                print(f"\ninvalid action: char={char}, ord={ord(char)}")
                 print_help()
     wordsRepo.save()
     print("done")

@@ -15,12 +15,6 @@ def read_input():
     except EOFError:
         pass
     return '\n'.join(lines)
-
-def isChinese(text)->bool:
-    pattern = re.compile(r'[\u4e00-\u9fa5]')
-    # fullmatch(^search$)
-    return bool(pattern.search(text))
-
 def getQuery()->Generator[LiteralString | str, Any, None]:
     parser = argparse.ArgumentParser()
     parser.add_argument('query', nargs='*', default='')
@@ -35,15 +29,26 @@ def getQuery()->Generator[LiteralString | str, Any, None]:
     else:
         if sys.stdin.isatty():
             # read from tty
-            while True:
-                query = input().strip()
-                yield query
-                if not query:
-                    break
+            try:
+                while True:
+                    query = input().strip()
+                    if query:
+                        yield query.strip()
+                    else:
+                        break
+            except KeyboardInterrupt:
+                quit()
+            except EOFError:
+                quit()
         else:
             # read from pipe
             query = read_input()
             yield query
+
+def isChinese(text)->bool:
+    pattern = re.compile(r'[\u4e00-\u9fa5]')
+    # fullmatch(^search$)
+    return bool(pattern.search(text))
 
 def trans_gpt(query:str):
     url = 'https://mygpt.com.local/api/chat-process'
@@ -80,7 +85,7 @@ def trans_shell(query:str):
         return ''
     lang =  ':@en' if isChinese(query) else ':@zh'
     if lang == ':@zh' and re.fullmatch(r'[0-9\-a-zA-Z ]+', query):
-        if gword.play_word(query):
+        if gword.show_word(query):
             quit()
     #print("trans",lang, "-b", query)
     cmd = f"trans {lang} -show-original n -show-translation n  -show-prompt-message n  -show-languages n".split()
