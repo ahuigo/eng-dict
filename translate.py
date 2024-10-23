@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 if sys.version_info < (3, 11): quit("Please upgrade your python version to 3.12 or higher")
-import argparse
+import argparse,readline
 from typing import Generator, LiteralString, Any
 import requests,re,json
 from subprocess import getoutput,check_output
@@ -33,6 +33,7 @@ def getQuery()->Generator[LiteralString | str, Any, None]:
             try:
                 while True:
                     query = input("\033[92mInput word or sentence: \033[0m").strip()
+                    #query = input().strip()
                     if query:
                         yield query.strip()
                     else:
@@ -89,7 +90,7 @@ def trans_shell(query:str):
         if gword.show_word(query):
             quit()
     #print("trans",lang, "-b", query)
-    cmd = f"trans {lang} -show-original-phonetics N -show-alternatives n -show-original Y -show-translation Y -show-prompt-message n -show-languages n".strip().split()
+    cmd = f"trans {lang} -show-original-phonetics N -show-alternatives n -show-original n -show-translation Y -show-prompt-message n -show-languages n".strip().split()
     #print(*cmd, query)
     # google / bing/ ...
     ans = check_output([*cmd, "-e", "google", query]).decode()
