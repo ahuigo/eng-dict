@@ -39,7 +39,7 @@ def show_word(word: str, show_sentence: bool = False):
 def show_word_sentence(wd: WordDef):
     if wd.sentences2:
         for s in wd.sentences2:
-            print(f"----------{s['type']}---------")
+            print(f"----------\033[96m {s['type']} \033[0m---------")
             print(s['definition'])
             for ex in s['examples']:
                 print("\n".join(ex))

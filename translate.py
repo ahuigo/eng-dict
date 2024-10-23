@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+if sys.version_info < (3, 11): quit("Please upgrade your python version to 3.12 or higher")
 import argparse
 from typing import Generator, LiteralString, Any
 import requests,re,json
