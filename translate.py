@@ -32,7 +32,7 @@ def getQuery()->Generator[LiteralString | str, Any, None]:
             # read from tty
             try:
                 while True:
-                    query = input().strip()
+                    query = input("\033[92mInput word or sentence: \033[0m").strip()
                     if query:
                         yield query.strip()
                     else:
@@ -89,8 +89,8 @@ def trans_shell(query:str):
         if gword.show_word(query):
             quit()
     #print("trans",lang, "-b", query)
-    cmd = f"trans {lang} -show-original n -show-translation n  -show-prompt-message n  -show-languages n".split()
-    # print(*cmd, query)
+    cmd = f"trans {lang} -show-original-phonetics N -show-alternatives n -show-original Y -show-translation Y -show-prompt-message n -show-languages n".strip().split()
+    #print(*cmd, query)
     # google / bing/ ...
     ans = check_output([*cmd, "-e", "google", query]).decode()
     return ans
