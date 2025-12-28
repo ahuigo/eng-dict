@@ -1,10 +1,11 @@
 SHELL := /bin/bash
 
+#-x socks5://127.0.0.1:1080
 install:
 	@[[ -d ~/bin ]] || mkdir -p ~/bin
 	# 1. install trans
 	@if ! [[ $$(find ~/bin/trans -type f -size +100k) ]]; then \
-		wget git.io/trans -O ~/bin/trans && \
+		curl -L git.io/trans -o ~/bin/trans && \
 		chmod u+x ~/bin/trans;	\
 	fi
 
@@ -14,16 +15,16 @@ install:
 	ln -sf `pwd`/recite.py ~/bin/recite.py
 
 	@# 3. PATH
-	@[[ -f ~/words.hash.gz ]] || wget https://github.com/ahuigo/eng-dict/releases/download/v0.1.0/words.hash.gz -O ~/.words.hash.gz
+	[[ -f ~/.words.hash.gz ]] || curl -L https://github.com/ahuigo/eng-dict/releases/download/v0.1.0/words.hash.gz -o ~/.words.hash.gz
 	@[[ "$$PATH" =~ ~/bin ]] || echo $$'请配置：' 'export PATH=$$PATH:~/bin'
 	@echo "try: t.py 'hello world'"
 
 	@# 4. install deps
-	@pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 clean:
-	rm -rf ~/.words.hash{.gz,}
+	rm -rf ~/.words.hash
 pkg:
-	cp ~/.words.hash.gz ./dist/words.hash.gz
+	cp ~/words.hash.gz ./dist/words.hash.gz
 	#gh release delete v0.1.0
 	#gh release create v0.1.0 --notes "mydict" ./dist/*{.tgz,.gz,.txt}
 	gh release create v0.1.0 --notes "mydict" ./dist/*
