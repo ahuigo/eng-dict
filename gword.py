@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys, os, re
+import sys, os, re,signal,time
 from gendict import get_word_def,is_sound_on, WordDef
 from subprocess import getoutput, call, Popen
 from multiprocessing import Process
@@ -10,7 +10,7 @@ play sound:
 mpg123 'http://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=en&q=remedy'
 mpg123 'http://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=zh-CN&q={encode(旋律)}'
 '''
-def show_word(word: str, show_sentence: bool = False):
+def show_word(word: str, show_sentence: bool = False, timeout=500):
     if is_sound_on():
         # echo -n "hello" | espeak
         # echo -n "hello" | say
@@ -26,7 +26,7 @@ def show_word(word: str, show_sentence: bool = False):
         print(wd.paraphrase.strip())
         if not show_sentence:
             print("press s to show sentence")
-            action = getch(500)
+            action = getch(timeout)
             if action == 's':
                 show_word_sentence(wd)
         else:
@@ -48,12 +48,25 @@ def show_word_sentence(wd: WordDef):
         print(wd.sentences)
 
 
-def say_with_time(s:str):
-    call(["sleep", "1.8"])
-    p = Popen(['say','-v', 'Meijia', s])
-    p.wait()
 
-def say_explanation(s:str):
+def say_with_time(s:str, wait_pid=0):
+    try:
+        if wait_pid > 0:
+            # call(["sleep", "0.8"])
+            os.waitpid(wait_pid, 0)
+            pass
+
+        time.sleep(0.2)
+        p = Popen(['say','-v', 'Meijia', s])
+        def sigHandler(signum, frame):
+            p.terminate()
+            sys.exit(0)
+        signal.signal(signal.SIGTERM, sigHandler)
+        p.wait()
+    except KeyboardInterrupt:
+        pass
+
+def say_explanation(s:str, wait_pid=0):
     if is_sound_on():
         for index,key in enumerate(['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩']):
             s= re.sub(key,f'', s)

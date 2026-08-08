@@ -286,7 +286,7 @@ Press any key to exit help
 """)
     print(s, end="")
     w = getch(1000)
-    print("w: ", w)
+    print("inputchar: ", w)
 
 def translate():
     query = input("Input something to translate: ").strip()
@@ -301,35 +301,48 @@ def recite():
         clear_screen()
         Popen(f'say "{word}"', shell=True)
         print("nextIndex:", wordsRepo.index, f"interval: {word_display_timeout}s")
-        char = getch(word_display_timeout)
-        match char:
-            case "h":
-                print_help()
-            case "i":
-                translate()
-            case "t":
-                set_word_display_timeout()
-            case "d": 
-                show_word(word) # display word definition
-            case "s":
-                wordsRepo.sort_toggle()
-            case " ":
-                print("suspending mode....(press any key to continue)")
-                getch(86400*10)
-            case "\x0a":
-                print("passed word: " + word)
-                wordsRepo.statis.pass_word(word)
-            case "u":
-                wordsRepo.statis.undo()
-            case 'n':
-                pass
-            case "p":
-                wordsRepo.__prev__()
-            case None:
-                pass
-            case _:
-                print(f"\ninvalid action: char={char}, ord={ord(char)}")
-                print_help()
+        while True:
+            char = getch(word_display_timeout)
+            match char:
+                case "h":
+                    print_help()
+                    continue
+                case "r":
+                    Popen(f'say "{word}"', shell=True)
+                    continue
+                case "i":
+                    translate()
+                    continue
+                case "t":
+                    set_word_display_timeout()
+                    continue
+                case "d": 
+                    show_word(word, timeout=5) # display word definition
+                    continue
+                case "s":
+                    wordsRepo.sort_toggle()
+                    continue
+                case " ":
+                    print("suspending mode....(press any key to continue)")
+                    getch(86400*10)
+                    continue
+                case "\x0a":
+                    print("passed word: " + word)
+                    wordsRepo.statis.pass_word(word)
+                case "u":
+                    wordsRepo.statis.undo()
+                case 'n':
+                    break
+                case None: # next
+                    break
+                case "p":
+                    wordsRepo.__prev__()
+                    break
+                case _:
+                    print(f"\ninvalid action: char={char}, ord={ord(char)}")
+                    print_help()
+                    continue
+            break
     wordsRepo.save()
     print("done")
 

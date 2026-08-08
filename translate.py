@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env /opt/homebrew/opt/python@3.12/bin/python3.12
 import sys
 if sys.version_info < (3, 11): quit("Please upgrade your python version to 3.12 or higher")
 import argparse,readline
